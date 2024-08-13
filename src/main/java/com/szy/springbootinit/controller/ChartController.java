@@ -160,7 +160,7 @@ public class ChartController {
      * @param request
      * @return
      */
-    @PostMapping("/list/page")
+    @PostMapping("/list/pageall")
     public BaseResponse<Page<Chart>> listChartByPage(@RequestBody ChartQueryRequest chartQueryRequest,
             HttpServletRequest request) {
         long current = chartQueryRequest.getCurrent();

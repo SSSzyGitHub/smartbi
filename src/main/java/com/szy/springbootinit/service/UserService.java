@@ -8,7 +8,6 @@ import com.szy.springbootinit.model.vo.LoginUserVO;
 import com.szy.springbootinit.model.vo.UserVO;
 import java.util.List;
 import javax.servlet.http.HttpServletRequest;
-import me.chanjar.weixin.common.bean.WxOAuth2UserInfo;
 
 /**
  * 用户服务

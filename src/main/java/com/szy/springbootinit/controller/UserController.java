@@ -6,7 +6,6 @@ import com.szy.springbootinit.common.BaseResponse;
 import com.szy.springbootinit.common.DeleteRequest;
 import com.szy.springbootinit.common.ErrorCode;
 import com.szy.springbootinit.common.ResultUtils;
-import com.szy.springbootinit.config.WxOpenConfig;
 import com.szy.springbootinit.constant.UserConstant;
 import com.szy.springbootinit.exception.BusinessException;
 import com.szy.springbootinit.exception.ThrowUtils;
@@ -54,8 +53,6 @@ public class UserController {
     @Resource
     private UserService userService;
 
-    @Resource
-    private WxOpenConfig wxOpenConfig;
 
     // region 登录相关
 

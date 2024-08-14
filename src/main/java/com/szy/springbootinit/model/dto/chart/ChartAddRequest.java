@@ -13,6 +13,10 @@ import java.io.Serializable;
 @Data
 public class ChartAddRequest implements Serializable {
 
+    /**
+     * 图标名称
+     */
+    private String charName;
 
     /**
      * 分析目标

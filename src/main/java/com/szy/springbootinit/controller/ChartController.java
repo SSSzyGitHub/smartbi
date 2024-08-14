@@ -10,26 +10,32 @@ import com.szy.springbootinit.common.DeleteRequest;
 import com.szy.springbootinit.common.ErrorCode;
 import com.szy.springbootinit.common.ResultUtils;
 import com.szy.springbootinit.constant.CommonConstant;
+import com.szy.springbootinit.constant.FileConstant;
 import com.szy.springbootinit.constant.UserConstant;
 import com.szy.springbootinit.exception.BusinessException;
 import com.szy.springbootinit.exception.ThrowUtils;
-import com.szy.springbootinit.model.dto.chart.ChartAddRequest;
-import com.szy.springbootinit.model.dto.chart.ChartEditRequest;
-import com.szy.springbootinit.model.dto.chart.ChartQueryRequest;
-import com.szy.springbootinit.model.dto.chart.ChartUpdateRequest;
+import com.szy.springbootinit.model.dto.chart.*;
+import com.szy.springbootinit.model.dto.file.UploadFileRequest;
 import com.szy.springbootinit.model.entity.Chart;
 import com.szy.springbootinit.model.entity.User;
+import com.szy.springbootinit.model.enums.FileUploadBizEnum;
 import com.szy.springbootinit.service.ChartService;
 import com.szy.springbootinit.service.UserService;
+import com.szy.springbootinit.utils.ExcelUtils;
 import com.szy.springbootinit.utils.SqlUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.io.File;
+
+import static com.szy.springbootinit.utils.ExcelUtils.excelToCsv;
 
 /**
  * 帖子接口
@@ -228,6 +234,55 @@ public class ChartController {
     }
 
     /**
+     * 智能分析
+     *
+     * @param multipartFile
+     * @param genChartByAiRequest
+     * @param request
+     * @return
+     */
+    @PostMapping("/gen")
+    public BaseResponse<String> genchartByAi(@RequestPart("file") MultipartFile multipartFile,
+                                             GenChartByAiRequest genChartByAiRequest, HttpServletRequest request) {
+        String chartName = genChartByAiRequest.getChartName();
+        String goal = genChartByAiRequest.getGoal();
+        String chartType = genChartByAiRequest.getChartType();
+
+        //校验条件
+        ThrowUtils.throwIf(StringUtils.isBlank(goal),ErrorCode.PARAMS_ERROR,"目标不能为空");
+        ThrowUtils.throwIf(StringUtils.isNotBlank(chartName) && chartName.length() > 100,ErrorCode.PARAMS_ERROR,"名称过长");
+
+        String result = ExcelUtils.excelToCsv(multipartFile);
+        return ResultUtils.success(result);
+//        //读取到用户上传的excel文件，进行一个处理
+//        User loginuser = userService.getLoginUser(request);
+
+//
+//        // 文件目录：根据业务、用户来划分
+//        String uuid = RandomStringUtils.randomAlphanumeric(8);
+//        String filename = uuid + "-" + multipartFile.getOriginalFilename();
+//
+//        File file = null;
+//        try {
+//
+//            // 返回可访问地址
+//           // return ResultUtils.success(FileConstant.COS_HOST + filepath);
+//        } catch (Exception e) {
+//            //log.error("file upload error, filepath = " + filepath, e);
+//            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "上传失败");
+//        } finally {
+//            if (file != null) {
+//                // 删除临时文件
+//                boolean delete = file.delete();
+//                if (!delete) {
+//                 //   log.error("file delete error, filepath = {}", filepath);
+//                }
+//            }
+//        }
+//        return null;
+    }
+
+    /**
      * 获取查询包装类
      *
      * @param chartQueryRequest
@@ -241,6 +296,7 @@ public class ChartController {
         }
         Long id = chartQueryRequest.getId();
         String goal = chartQueryRequest.getGoal();
+        String charName = chartQueryRequest.getCharName();
         String chartType = chartQueryRequest.getChartType();
         Long userId = chartQueryRequest.getUserId();
         String sortField = chartQueryRequest.getSortField();
@@ -248,6 +304,7 @@ public class ChartController {
 
         queryWrapper.eq(id != null && id > 0,"id",id);
         queryWrapper.eq(StringUtils.isNotBlank(goal),"goal",goal);
+        queryWrapper.like(StringUtils.isNotBlank(charName),"charName",charName);
         queryWrapper.eq(StringUtils.isNotBlank(chartType),"chartType",chartType);
         queryWrapper.eq(ObjectUtils.isNotEmpty(userId), "userId", userId);
         queryWrapper.eq("isDelete",false);

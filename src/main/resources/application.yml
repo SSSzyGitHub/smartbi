@@ -80,3 +80,11 @@ knife4j:
         api-rule: package
         api-rule-resources:
           - com.szy.springbootinit.controller
+# 鱼聪明 AI 配置
+
+yuapi:
+  client:
+    access-key: 9rfefnpdzlnirgmmha64tu8p1fpddf5s
+
+    secret-key: isnd3qsmvvb0abruy5mf8tzfxt36n6b2
+

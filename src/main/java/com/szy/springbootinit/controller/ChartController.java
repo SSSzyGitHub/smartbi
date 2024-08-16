@@ -14,11 +14,13 @@ import com.szy.springbootinit.constant.FileConstant;
 import com.szy.springbootinit.constant.UserConstant;
 import com.szy.springbootinit.exception.BusinessException;
 import com.szy.springbootinit.exception.ThrowUtils;
+import com.szy.springbootinit.manager.AiManager;
 import com.szy.springbootinit.model.dto.chart.*;
 import com.szy.springbootinit.model.dto.file.UploadFileRequest;
 import com.szy.springbootinit.model.entity.Chart;
 import com.szy.springbootinit.model.entity.User;
 import com.szy.springbootinit.model.enums.FileUploadBizEnum;
+import com.szy.springbootinit.model.vo.BiResponse;
 import com.szy.springbootinit.service.ChartService;
 import com.szy.springbootinit.service.UserService;
 import com.szy.springbootinit.utils.ExcelUtils;
@@ -53,6 +55,9 @@ public class ChartController {
 
     @Resource
     private UserService userService;
+
+    @Resource
+    private AiManager aiManager;
 
     // region 增删改查
 
@@ -242,7 +247,7 @@ public class ChartController {
      * @return
      */
     @PostMapping("/gen")
-    public BaseResponse<String> genchartByAi(@RequestPart("file") MultipartFile multipartFile,
+    public BaseResponse<BiResponse> genchartByAi(@RequestPart("file") MultipartFile multipartFile,
                                              GenChartByAiRequest genChartByAiRequest, HttpServletRequest request) {
         String chartName = genChartByAiRequest.getChartName();
         String goal = genChartByAiRequest.getGoal();
@@ -252,34 +257,30 @@ public class ChartController {
         ThrowUtils.throwIf(StringUtils.isBlank(goal),ErrorCode.PARAMS_ERROR,"目标不能为空");
         ThrowUtils.throwIf(StringUtils.isNotBlank(chartName) && chartName.length() > 100,ErrorCode.PARAMS_ERROR,"名称过长");
 
-        String result = ExcelUtils.excelToCsv(multipartFile);
-        return ResultUtils.success(result);
-//        //读取到用户上传的excel文件，进行一个处理
-//        User loginuser = userService.getLoginUser(request);
+        //直接调用现有的AI模型ID
+        Long BiModelId = 1659171950288818178L;
 
-//
-//        // 文件目录：根据业务、用户来划分
-//        String uuid = RandomStringUtils.randomAlphanumeric(8);
-//        String filename = uuid + "-" + multipartFile.getOriginalFilename();
-//
-//        File file = null;
-//        try {
-//
-//            // 返回可访问地址
-//           // return ResultUtils.success(FileConstant.COS_HOST + filepath);
-//        } catch (Exception e) {
-//            //log.error("file upload error, filepath = " + filepath, e);
-//            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "上传失败");
-//        } finally {
-//            if (file != null) {
-//                // 删除临时文件
-//                boolean delete = file.delete();
-//                if (!delete) {
-//                 //   log.error("file delete error, filepath = {}", filepath);
-//                }
-//            }
-//        }
-//        return null;
+        //构造用户输入
+        StringBuilder userInput = new StringBuilder();
+        userInput.append("分析需求：").append("\n");
+        userInput.append(goal).append("\n");
+        userInput.append("原始数据：").append("\n");
+        //压缩后的数据
+        String csvBody = ExcelUtils.excelToCsv(multipartFile);
+        userInput.append(csvBody).append("\n");
+
+        String result = aiManager.doChat(BiModelId,userInput.toString());
+        String[] splits = result.split("【【【【【");
+        if(splits.length < 3){
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR,"AI模型返回结果错误");
+        }
+        String genChart = splits[1];
+        String genResult = splits[2];
+        BiResponse biResponse = new BiResponse();
+        biResponse.setGenChart(genChart);
+        biResponse.setGenResult(genResult);
+
+        return ResultUtils.success(biResponse);
     }
 
     /**

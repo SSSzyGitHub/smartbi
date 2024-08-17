@@ -1,4 +1,5 @@
 package com.szy.springbootinit.controller;
+import java.util.Date;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.json.JSONUtil;
@@ -256,6 +257,7 @@ public class ChartController {
         //校验条件
         ThrowUtils.throwIf(StringUtils.isBlank(goal),ErrorCode.PARAMS_ERROR,"目标不能为空");
         ThrowUtils.throwIf(StringUtils.isNotBlank(chartName) && chartName.length() > 100,ErrorCode.PARAMS_ERROR,"名称过长");
+        User loginUser = userService.getLoginUser(request);
 
         //直接调用现有的AI模型ID
         Long BiModelId = 1659171950288818178L;
@@ -263,8 +265,15 @@ public class ChartController {
         //构造用户输入
         StringBuilder userInput = new StringBuilder();
         userInput.append("分析需求：").append("\n");
-        userInput.append(goal).append("\n");
+
+        //拼接分析目标
+        String userGoal = goal;
+        if(StringUtils.isNotBlank(chartType)){
+            userGoal += "，请使用：" + chartType;
+        }
+        userInput.append(userGoal).append("\n");
         userInput.append("原始数据：").append("\n");
+
         //压缩后的数据
         String csvBody = ExcelUtils.excelToCsv(multipartFile);
         userInput.append(csvBody).append("\n");
@@ -274,11 +283,26 @@ public class ChartController {
         if(splits.length < 3){
             throw new BusinessException(ErrorCode.SYSTEM_ERROR,"AI模型返回结果错误");
         }
-        String genChart = splits[1];
-        String genResult = splits[2];
+        String genChart = splits[1].trim();
+        String genResult = splits[2].trim();
+
+        //插入数据到数据库
+        Chart chart = new Chart();
+        chart.setCharName(chartName);
+        chart.setGoal(goal);
+        chart.setChartData(csvBody);
+        chart.setChartType(chartType);
+        chart.setGenChart(genChart);
+        chart.setGenResult(genResult);
+        chart.setUserId(loginUser.getId());
+        boolean saveResult = chartService.save(chart);
+        ThrowUtils.throwIf(!saveResult,ErrorCode.SYSTEM_ERROR,"图表保存失败");
+
+
         BiResponse biResponse = new BiResponse();
         biResponse.setGenChart(genChart);
         biResponse.setGenResult(genResult);
+        biResponse.setChartId(chart.getId());
 
         return ResultUtils.success(biResponse);
     }
